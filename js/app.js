@@ -148,9 +148,10 @@
         audio.lastTick = now; tone(1500 + Math.random() * 600, 0.03, 'sine', 0.03);
       }
     },
-    finish: function (rank) {
+    finish: function (rank, cut) {
       var base = rank <= 3 ? 660 : 523;
       tone(base, 0.18, 'sine', 0.12); tone(base * 1.5, 0.28, 'sine', 0.12, 0.12);
+      if (cut) tone(base * 2, 0.35, 'triangle', 0.1, 0.26);   // 커트라인 확정은 한 음 더
     },
     count: function (last) { tone(last ? 880 : 440, last ? 0.5 : 0.15, 'square', 0.08); },
     fanfare: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, 0.35, 'triangle', 0.1, i * 0.12); }); }
@@ -243,7 +244,10 @@
       board.appendChild(row);
     });
     state.teacherOrder = [];
-    launchRace(state.teachers, state.teachers.map(function (n) { return state.teacherColorByName[n]; }), function (m, rank) {
+    // 선생님 레이스는 모든 등수가 커트라인 (마지막 한 명은 자동 확정)
+    var cuts = [];
+    for (var c = 1; c < state.teachers.length; c++) cuts.push(c);
+    launchRace(state.teachers, state.teachers.map(function (n) { return state.teacherColorByName[n]; }), { cutRanks: cuts }, function (m, rank) {
       state.teacherOrder.push(m.name);
       var row = board.querySelector('.rank-row[data-rank="' + rank + '"]');
       row.classList.add('filled');
@@ -265,7 +269,7 @@
     $('#stage-badge').textContent = '2단계 · 학생 배정';
     $('#hud-title').textContent = '2단계 · 학생 배정 레이스';
     $('#panel-title').textContent = '배정 현황';
-    $('#panel-sub').textContent = '도착 순서대로 1등 선생님부터 차례로 들어가요.';
+    $('#panel-sub').textContent = '도착 순서대로 1등 선생님부터 차례로 들어가요. 선생님이 바뀌는 등수는 골 앞 필터에서 슬로모션으로!';
     state.assignments = state.teacherOrder.map(function () { return []; });
 
     var board = $('#board'); board.innerHTML = '';
@@ -292,7 +296,13 @@
     highlightNext(1);
 
     var colors = studentColors(state.students.length);
-    launchRace(state.students, colors, function (m, rank) {
+    // 커트라인: 1등 + 선생님이 바뀌는 경계 등수 (예: 5·5·5·5 → 1, 5, 10, 15). 여기서만 슬로모션이 걸린다
+    var cuts = [1], acc = 0;
+    for (var c = 0; c < state.sizes.length - 1; c++) { acc += state.sizes[c]; if (acc > 0 && acc < state.students.length) cuts.push(acc); }
+    launchRace(state.students, colors, {
+      cutRanks: cuts,
+      rankLabel: function (rank) { return '→ ' + state.teacherOrder[teacherIndexForRank(rank, state.sizes)]; }
+    }, function (m, rank) {
       var ti = teacherIndexForRank(rank, state.sizes);
       var list = state.assignments[ti];
       list.push({ name: m.name, rank: rank, color: m.color });
@@ -314,18 +324,18 @@
   }
 
   // ---------- 공통: 레이스 띄우기 ----------
-  function launchRace(names, colors, onFinish, onDone) {
+  function launchRace(names, colors, raceOpts, onFinish, onDone) {
     teardownRace();
     $('#btn-next').hidden = true; $('#btn-rerun').hidden = true;
     $('#hud-progress').textContent = '0 / ' + names.length + ' 도착';
     $('#countdown').hidden = true;
     setSpeedChips();
 
-    var race = MarbleRace.createRace({ names: names, colors: colors });
+    var race = MarbleRace.createRace({ names: names, colors: colors, cutRanks: raceOpts.cutRanks, rankLabel: raceOpts.rankLabel });
     state.race = race;
     race.onHit = sfx.hit;
     race.onFinish = function (m, rank) {
-      sfx.finish(rank);
+      sfx.finish(rank, raceOpts.cutRanks && raceOpts.cutRanks.indexOf(rank) >= 0);
       onFinish(m, rank);
       if (race.done) { sfx.fanfare(); onDone(); if (QA) window.__qa.doneCount++; }
     };

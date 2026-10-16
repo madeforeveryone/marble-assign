@@ -20,14 +20,21 @@ def serve():
     t = threading.Thread(target=httpd.serve_forever, daemon=True); t.start()
     return httpd, httpd.server_address[1]
 
-def run_stage(page, label):
-    """현재 레이스를 물리 직접 구동으로 끝까지 돌린다."""
+def run_stage(page, label, shot_zoom=None):
+    """현재 레이스를 물리 직접 구동으로 끝까지 돌린다. shot_zoom 이 있으면 클로즈업(줌 ≥ 0.8) 순간을 찍는다."""
     page.wait_for_function("window.__qa && window.__qa.race && window.__qa.race.started", timeout=10000)
-    t0 = time.time()
+    t0 = time.time(); zoom_seen = 0; slow_seen = 1
     while True:
-        done = page.evaluate("window.__qa.step(500)")
+        done = page.evaluate("window.__qa.step(250)")
+        st = page.evaluate("({z: __qa.race.zoom, ts: __qa.race.timeScale, cut: __qa.race.cutActive})")
+        zoom_seen = max(zoom_seen, st['z']); slow_seen = min(slow_seen, st['ts'])
+        if shot_zoom and st['z'] >= 0.8 and not os.path.exists(shot_zoom):
+            page.wait_for_timeout(1500)   # 물리는 멈춘 채 카메라만 목표까지 가게 둔 뒤 찍는다
+            page.screenshot(path=shot_zoom)
         if done: break
-        if time.time() - t0 > 120: raise SystemExit(f'{label}: race did not finish')
+        if time.time() - t0 > 180: raise SystemExit(f'{label}: race did not finish')
+    print(f'  {label}: max zoom intensity {zoom_seen:.2f}, min timeScale {slow_seen:.2f}')
+    assert zoom_seen >= 0.8, 'close-up never triggered'
     page.wait_for_function("document.querySelector('#btn-next') && !document.querySelector('#btn-next').hidden", timeout=5000)
     race = page.evaluate("({time: __qa.race.time, nudges: __qa.race.stats.nudges, forced: __qa.race.stats.forced, n: __qa.race.finished.length})")
     print(f'  {label}: {race["n"]} finished in {race["time"]/1000:.1f}s (nudges={race["nudges"]}, forced={race["forced"]})')
@@ -72,13 +79,13 @@ def main():
         print('scenario 1: 4 teachers / 20 students')
         page.evaluate("__qa.step(1200)")
         if SHOTS: page.screenshot(path=f'{SHOTS}/02_teacher_race.png')
-        run_stage(page, 'teacher stage')
+        run_stage(page, 'teacher stage', shot_zoom=(f'{SHOTS}/02b_closeup_teacher.png' if SHOTS else None))
         if SHOTS: page.screenshot(path=f'{SHOTS}/03_teacher_done.png')
         page.click('#btn-next')
         page.wait_for_function("window.__qa.race && window.__qa.race.started")
         page.evaluate("__qa.step(3000)")
         if SHOTS: page.screenshot(path=f'{SHOTS}/04_student_race.png')
-        run_stage(page, 'student stage')
+        run_stage(page, 'student stage', shot_zoom=(f'{SHOTS}/04b_closeup.png' if SHOTS else None))
         if SHOTS: page.screenshot(path=f'{SHOTS}/05_student_done.png')
         page.click('#btn-next')
         page.wait_for_selector('#screen-result:not([hidden])')
