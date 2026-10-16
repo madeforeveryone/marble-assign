@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>마블 배정 룰렛 — 선생님별 프로젝트 학생 배정</title>
+  <meta name="description" content="구슬 레이스로 선생님 순위를 정하고, 학생 순위에 따라 자동으로 프로젝트에 배정하는 추첨 앱">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23f43f5e'/%3E%3Ccircle cx='36' cy='34' r='14' fill='white' opacity='.8'/%3E%3C/svg%3E">
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="logo"><span class="logo-ball"></span>마블 배정 룰렛</h1>
+    <div class="topbar-right">
+      <span id="stage-badge" class="badge" hidden></span>
+      <button id="btn-home" class="btn btn-ghost" type="button" hidden>처음으로</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- 1. 설정 -->
+    <section id="screen-setup" class="screen">
+      <div class="setup-grid">
+        <div class="card">
+          <h2>1단계 · 선생님</h2>
+          <p class="hint">한 줄에 한 명. 구슬 레이스로 1등부터 순서를 정해요.</p>
+          <textarea id="teachers" rows="8" spellcheck="false" placeholder="김선생&#10;이선생&#10;박선생&#10;최선생"></textarea>
+          <div class="count" id="teacher-count">0명</div>
+        </div>
+        <div class="card">
+          <h2>2단계 · 학생</h2>
+          <p class="hint">한 줄에 한 명(쉼표도 됨). 학생 순위대로 1등 선생님부터 차례로 배정돼요.</p>
+          <textarea id="students" rows="8" spellcheck="false" placeholder="학생 이름을 한 줄에 한 명씩 넣어 주세요"></textarea>
+          <div class="count" id="student-count">0명</div>
+        </div>
+        <div class="card card-wide">
+          <h2>배정 규칙</h2>
+          <div class="rule-row">
+            <div class="rule-auto">
+              <span class="label">자동 배정</span>
+              <span id="auto-sizes" class="sizes">—</span>
+            </div>
+            <label class="rule-manual">
+              <span class="label">직접 지정 <small>(선택, 예: 6,5,5,4)</small></span>
+              <input id="manual-sizes" type="text" inputmode="numeric" placeholder="비워 두면 자동" autocomplete="off">
+            </label>
+          </div>
+          <p id="rule-preview" class="rule-preview"></p>
+          <p id="setup-error" class="error" hidden></p>
+          <div class="options">
+            <label class="opt"><input type="checkbox" id="opt-sound" checked> 효과음</label>
+            <span class="opt">속도
+              <label><input type="radio" name="speed" value="1" checked> 1×</label>
+              <label><input type="radio" name="speed" value="2"> 2×</label>
+              <label><input type="radio" name="speed" value="4"> 4×</label>
+            </span>
+            <button id="btn-sample" class="btn btn-ghost" type="button">예시 이름 넣기</button>
+          </div>
+          <button id="btn-start" class="btn btn-primary btn-big" type="button">레이스 시작 ▶</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. 레이스 -->
+    <section id="screen-race" class="screen" hidden>
+      <div class="race-layout">
+        <div class="stage" id="stage">
+          <canvas id="race-canvas"></canvas>
+          <div class="hud">
+            <div class="hud-left">
+              <span id="hud-title" class="hud-title"></span>
+              <span id="hud-progress" class="hud-progress"></span>
+            </div>
+            <div class="hud-right">
+              <div class="speed-group" role="group" aria-label="속도">
+                <button class="chip speed-chip" data-speed="1" type="button">1×</button>
+                <button class="chip speed-chip" data-speed="2" type="button">2×</button>
+                <button class="chip speed-chip" data-speed="4" type="button">4×</button>
+              </div>
+              <button id="btn-sound" class="chip" type="button" title="효과음">🔊</button>
+            </div>
+          </div>
+          <div id="countdown" class="countdown" hidden></div>
+          <button id="btn-go" class="btn btn-go" type="button">출발!</button>
+        </div>
+        <aside class="panel">
+          <div class="panel-head">
+            <h2 id="panel-title"></h2>
+            <p id="panel-sub" class="hint"></p>
+          </div>
+          <div id="board" class="board"></div>
+          <div class="panel-foot">
+            <button id="btn-next" class="btn btn-primary btn-big" type="button" hidden></button>
+            <button id="btn-rerun" class="btn btn-ghost" type="button" hidden>이 단계 다시 돌리기</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- 3. 결과 -->
+    <section id="screen-result" class="screen" hidden>
+      <div class="result-head">
+        <h2>배정 결과</h2>
+        <div class="result-actions">
+          <button id="btn-copy-table" class="btn btn-primary" type="button">표 복사 (엑셀 붙여넣기용)</button>
+          <button id="btn-copy-text" class="btn" type="button">텍스트 복사</button>
+          <button id="btn-redo-students" class="btn btn-ghost" type="button">학생 레이스만 다시</button>
+          <button id="btn-restart" class="btn btn-ghost" type="button">처음부터</button>
+        </div>
+      </div>
+      <div id="result-grid" class="result-grid"></div>
+      <div id="toast" class="toast" hidden></div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>lazygyu의 <a href="https://lazygyu.github.io/roulette/" target="_blank" rel="noopener">마블 룰렛</a>에서 영감을 받았습니다 · 물리 엔진 <a href="https://brm.io/matter-js/" target="_blank" rel="noopener">Matter.js</a></span>
+  </footer>
+
+  <script src="vendor/matter.min.js"></script>
+  <script src="js/race.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
