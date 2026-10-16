@@ -1,0 +1,28 @@
+# main 에 푸시하면 gh-pages 브랜치를 같은 내용으로 갱신한다.
+# GitHub Pages 는 gh-pages 브랜치(루트)에서 서빙되므로, main 만 관리하면 자동 배포된다.
+name: Sync gh-pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gh-pages
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Push main to gh-pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git push --force origin HEAD:gh-pages

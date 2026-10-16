@@ -37,9 +37,15 @@ tools/qa_flow.py      브라우저 플로우 테스트 (Playwright)
 - 중력 0.7 기준 20구슬 레이스는 약 12초에 1등, 21초 안팎에 꼴찌가 들어옵니다. 더 빠르게 보려면 속도 버튼을 쓰세요.
 - 회전체는 정적 몸체의 각도만 매 스텝 바꾸는 방식(`Body.setAngle(body, angle, true)`)이라 접촉 속도에 회전이 반영되어 구슬을 제대로 튕겨냅니다.
 
+## 배포
+
+- 사이트: https://madeforeveryone.github.io/marble-assign/
+- GitHub Pages 는 `gh-pages` 브랜치(루트)에서 서빙됩니다. `main` 에 푸시하면 `.github/workflows/pages.yml` 이 `gh-pages` 를 같은 내용으로 갱신하므로 `main` 만 관리하면 됩니다.
+
 ## 테스트
 
 ```
 node tools/simulate.js 20 100     # 코스 시뮬레이션
 python3 tools/qa_flow.py          # 브라우저 플로우 (pip install playwright && playwright install chromium)
+python3 tools/qa_live.py          # 배포된 사이트 스모크 테스트
 ```
