@@ -89,6 +89,13 @@ input[type="text"] {
   border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px;
 }
 .rule-preview { color: var(--muted); font-size: 14px; margin: 10px 0 0; line-height: 1.6; }
+.rule-preview div + div { margin-top: 2px; }
+.group-options { margin-top: 14px; padding: 12px 14px; border: 1px dashed var(--line); border-radius: 12px; background: rgba(255,255,255,0.03); }
+.group-options .label { margin-bottom: 8px; }
+.group-opt { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 15px; cursor: pointer; flex-wrap: wrap; }
+.group-opt .muted { color: var(--muted); font-size: 13px; }
+.group-opt .warn { color: var(--danger); font-size: 13px; font-weight: 700; }
+.hint code { background: var(--bg-2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 13px; color: var(--accent); }
 .error { color: var(--danger); font-weight: 700; margin: 10px 0 0; }
 .options { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin: 16px 0; }
 .opt { display: inline-flex; align-items: center; gap: 8px; color: var(--text); }
@@ -172,7 +179,8 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); width
 .result-card .sub { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
 .result-card ol { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
 .result-card li { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 500; background: var(--card-2); border-radius: 8px; padding: 6px 10px; }
-.result-card li .r { font-size: 12px; color: var(--muted); min-width: 34px; }
+.result-card li .r { font-size: 12px; color: var(--muted); min-width: 34px; white-space: nowrap; }
+.result-card li .tag { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--muted); background: rgba(255,255,255,0.07); border-radius: 999px; padding: 2px 8px; }
 .toast {
   position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%); background: var(--ok); color: #052e16;
   font-weight: 700; padding: 10px 18px; border-radius: 999px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);

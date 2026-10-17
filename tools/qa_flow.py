@@ -127,6 +127,49 @@ def main():
         assert page.evaluate("document.querySelector('#screen-setup').hidden") is False
         print('scenario 4: invalid manual sizes blocked OK')
 
+        # --- 시나리오 G: 학년 그룹 — 5학년 7명을 선생님 4명에게 고르게(최소 1명), 4학년 13명은 블록 배정
+        page.goto(base); page.wait_for_function('window.__qa')
+        teachers = ['김', '이', '박', '최']
+        g4 = [f'사{i+1}' for i in range(13)]; g5 = [f'오{i+1}' for i in range(7)]
+        roster = ['[4학년] ' + ', '.join(g4), '[5학년] ' + ', '.join(g5)]
+        page.evaluate('([t,s]) => __qa.setup(t, s, "", {})', [teachers, roster])
+        plan = page.evaluate('__qa.plan()')
+        assert [ (r['label'], r['mode'], r['n']) for r in plan ] == [('5학년', 'roundrobin', 7), ('4학년', 'block', 13)], plan
+        assert plan[0]['counts'] == [2, 2, 2, 1] and plan[1]['counts'] == [3, 3, 3, 4], plan
+        assert page.evaluate("document.querySelector('#group-options input[data-group=\"5학년\"]').checked")
+        if SHOTS: page.screenshot(path=f'{SHOTS}/09_setup_groups.png')
+        page.click('#btn-start'); print('scenario G: grouped roster (5학년 spread)')
+        run_stage(page, 'teacher stage'); page.click('#btn-next')
+        assert '5학년' in page.evaluate("document.querySelector('#stage-badge').textContent")
+        run_stage(page, '5학년 race (round-robin)')
+        if SHOTS: page.screenshot(path=f'{SHOTS}/10_after_g5.png')
+        page.click('#btn-next')
+        assert '4학년' in page.evaluate("document.querySelector('#stage-badge').textContent")
+        run_stage(page, '4학년 race (block)'); page.click('#btn-next')
+        page.wait_for_selector('#screen-result:not([hidden])')
+        if SHOTS: page.screenshot(path=f'{SHOTS}/11_result_groups.png', full_page=True)
+        res = page.evaluate('window.__qa.result')
+        for i, a in enumerate(res['assignments']):
+            assert len(a) == 5, a
+            fifth = [s for s in a if s['group'] == '5학년']
+            assert len(fifth) >= 1, f'teacher {i} has no 5학년: {a}'
+            assert len(fifth) == plan[0]['counts'][i], (i, fifth)
+            # 5학년 자리 먼저(돌아가며), 그 다음 4학년 블록 — 각 레이스 안에서 등수는 오름차순
+            fr = [s['rank'] for s in fifth]; assert fr == sorted(fr)
+            four = [s['rank'] for s in a if s['group'] == '4학년']; assert four == sorted(four) and len(four) == plan[1]['counts'][i]
+        # 돌아가며 배정: 5학년 k등 → (k-1) % 4 번째 선생님
+        for i, a in enumerate(res['assignments']):
+            for s in a:
+                if s['group'] == '5학년': assert (s['rank'] - 1) % 4 == i, (i, s)
+        # 블록 배정: 4학년 1~3등 → 1등 선생님, 4~6 → 2등, 7~9 → 3등, 10~13 → 4등
+        bounds = [(1, 3), (4, 6), (7, 9), (10, 13)]
+        for i, a in enumerate(res['assignments']):
+            for s in a:
+                if s['group'] == '4학년': assert bounds[i][0] <= s['rank'] <= bounds[i][1], (i, s)
+        all_names = sorted(s['name'] for a in res['assignments'] for s in a)
+        assert all_names == sorted(g4 + g5)
+        print('  grouped result OK: 5학년 per teacher =', [len([s for s in a if s['group'] == '5학년']) for a in res['assignments']])
+
         # --- 시나리오 5: 선생님 1명 → 1단계 생략
         page.goto(base); page.wait_for_function('window.__qa')
         page.evaluate('([t,s]) => __qa.setup(t, s)', [['혼자'], ['a', 'b', 'c', 'd', 'e']])

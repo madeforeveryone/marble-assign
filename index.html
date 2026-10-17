@@ -32,8 +32,8 @@
         </div>
         <div class="card">
           <h2>2단계 · 학생</h2>
-          <p class="hint">한 줄에 한 명(쉼표도 됨). 학생 순위대로 1등 선생님부터 차례로 배정돼요.</p>
-          <textarea id="students" rows="8" spellcheck="false" placeholder="학생 이름을 한 줄에 한 명씩 넣어 주세요"></textarea>
+          <p class="hint">한 줄에 한 명(쉼표도 됨). 학년을 나누려면 <code>[5학년] 이름, 이름…</code>처럼 줄 앞에 표시해요.</p>
+          <textarea id="students" rows="8" spellcheck="false" placeholder="[4학년] 이름, 이름, …&#10;[5학년] 이름, 이름, …"></textarea>
           <div class="count" id="student-count">0명</div>
         </div>
         <div class="card card-wide">
@@ -48,7 +48,8 @@
               <input id="manual-sizes" type="text" inputmode="numeric" placeholder="비워 두면 자동" autocomplete="off">
             </label>
           </div>
-          <p id="rule-preview" class="rule-preview"></p>
+          <div id="group-options" class="group-options" hidden></div>
+          <div id="rule-preview" class="rule-preview"></div>
           <p id="setup-error" class="error" hidden></p>
           <div class="options">
             <label class="opt"><input type="checkbox" id="opt-sound" checked> 효과음</label>
