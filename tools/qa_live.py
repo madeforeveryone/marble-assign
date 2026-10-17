@@ -38,6 +38,20 @@ with sync_playwright() as p:
         for s in a: assert s['rank'] == rank; rank += 1
     print('  assignment rule OK:', ' | '.join(f"{i+1}등 {t}: " + ', '.join(s['name'] for s in res['assignments'][i]) for i, t in enumerate(res['teacherOrder'])))
     if SHOT: page.screenshot(path=os.path.join(SHOT, 'live_result.png'))
+
+    # 학년 그룹: 5학년 7명을 4명 선생님에게 최소 1명씩
+    page.goto(URL, wait_until='networkidle'); page.wait_for_function('window.__qa')
+    roster = ['[4학년] ' + ', '.join(f'사{i+1}' for i in range(13)), '[5학년] ' + ', '.join(f'오{i+1}' for i in range(7))]
+    page.evaluate('([t,s]) => __qa.setup(t, s, "", {})', [teachers, roster])
+    page.click('#btn-start')
+    run_stage(page, 'teacher stage'); page.click('#btn-next')
+    run_stage(page, '5학년 race'); page.click('#btn-next')
+    run_stage(page, '4학년 race'); page.click('#btn-next')
+    page.wait_for_selector('#screen-result:not([hidden])')
+    res = page.evaluate('window.__qa.result')
+    per = [len([s for s in a if s['group'] == '5학년']) for a in res['assignments']]
+    assert per == [2, 2, 2, 1] and all(len(a) == 5 for a in res['assignments']), (per, res)
+    print('  grouped OK: 5학년 per teacher =', per)
     b.close()
 if bad: print('BAD RESPONSES:', *bad, sep='\n  ')
 if errors: print('CONSOLE ERRORS:', *errors, sep='\n  ')
